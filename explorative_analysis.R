@@ -12,12 +12,38 @@ for (col in datecols) {
   globaltemp[col] <- ts(globaltemp[col], start=1960, frequency=12)
 }
 
-globaltemp$world_emission = ts(globaltemp$world_emission, start=1960, frequency=1)
+globaltemp$world_emission <- ts(globaltemp$world_emission, start=1960, frequency=1)
 
-# linear model
-linmodel <- lm(LandAndOceanAverageTemperature ~ dt, data = globaltemp)
+# Repeating every yearly entry for world-emission per month
+em <-  globaltemp$world_emission
+
+first <- em[1]
+for (i in 1:length(em)) {
+  if (!is.na(em[i])) {
+    first <- em[i]
+  } else {
+    em[i] <- first
+  }
+}
+
+globaltemp$world_emission_month_rep <- ts(em, start = 1960, frequency = 12)
 
 
+# interpolate missing values
+em_int <- globaltemp$world_emission
+
+library(zoo)
+Cz <- zoo(em_int, frequency = 1)
+Cz_approx <- ts(na.approx(Cz), start=1960, frequency = 12)
+plot(Cz_approx)
+# globaltemp$world_emission_month_int <- Cz_approx
+
+globaltemp <- ts(globaltemp, start = 1960, frequency = 12)
+globaltemp_train <- window(globaltemp, 1960, 2004)
+globaltemp_test <- window(globaltemp, 2004)
+
+write.csv(globaltemp_train, "temp_emissions_1960_2004.csv")
+write.csv(globaltemp_test, "temp_emissions_2004_2014.csv")
 
 # Plot Time Series
 autoplot(globaltemp$LandAndOceanAverageTemperature) +
